@@ -4,9 +4,14 @@ import { motion } from 'framer-motion';
 import { SteamIcon } from './SteamIcon';
 
 export function SteamButtonView() {
+  const handleSteamLogin = () => {
+    window.location.href = '/api/auth/steam';
+  };
+
   return (
     <motion.button
-      className="group relative w-full rounded-lg overflow-hidden transition-all duration-300"
+      onClick={handleSteamLogin}
+      className="group relative w-full rounded-lg overflow-hidden transition-all duration-300 cursor-pointer"
       style={{
         background: 'linear-gradient(135deg, #1B2838 0%, #0A3D62 100%)',
         boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)',
