@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { Sidebar } from '@/components/PremiumDashboard/Sidebar';
+import { RightPanel } from '@/components/PremiumDashboard/RightPanel';
+import { HeroCard } from '@/components/PremiumDashboard/HeroCard';
+import { GameGrid } from '@/components/PremiumDashboard/GameGrid';
+import { ProfileCard } from '@/components/PremiumDashboard/ProfileCard';
 
 interface Game {
   appId: number;
@@ -26,6 +30,7 @@ interface UserProfile {
     totalPlaytimeHours: number;
   };
   recentGames: Game[];
+  ownedGames: Game[];
 }
 
 export function DashboardView() {
@@ -33,6 +38,7 @@ export function DashboardView() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeNav, setActiveNav] = useState('home');
 
   useEffect(() => {
     fetchProfile();
@@ -62,6 +68,7 @@ export function DashboardView() {
     router.push('/login');
   };
 
+  // Format playtime helper
   const formatPlaytime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -73,13 +80,26 @@ export function DashboardView() {
     return `${mins}m`;
   };
 
+  // Sort owned games by playtime (most played first)
+  const sortedOwnedGames = profile?.ownedGames
+    ? [...profile.ownedGames].sort((a, b) => b.playtimeForever - a.playtimeForever)
+    : [];
+
+  // Get featured game (most played game)
+  const heroGame = sortedOwnedGames?.[0] || profile?.recentGames?.[0] || null;
+  
+  // Get other games (skip the hero game)
+  const otherGames = sortedOwnedGames
+    .filter((game) => game.appId !== heroGame?.appId)
+    .slice(0, 11); // Show 11 more games (12 total including hero)
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+      <div className="relative w-full min-h-screen overflow-hidden bg-black flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-white text-xl"
+          className="text-white/90 text-xl"
         >
           Loading your profile...
         </motion.div>
@@ -89,12 +109,12 @@ export function DashboardView() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+      <div className="relative w-full min-h-screen overflow-hidden bg-black flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white text-xl mb-4">{error || 'Failed to load profile'}</p>
+          <p className="text-white/90 text-xl mb-4">{error || 'Failed to load profile'}</p>
           <button
             onClick={fetchProfile}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/90 rounded-lg border border-white/20 transition-colors"
           >
             Retry
           </button>
@@ -104,136 +124,100 @@ export function DashboardView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center mb-8"
-        >
-          <h1 className="text-4xl font-bold text-white">Your Gaming Profile</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-          >
-            Logout
-          </button>
-        </motion.div>
+    <div className="relative w-full min-h-screen overflow-hidden bg-black">
+      {/* Background Layers */}
+      {/* Background Image Layer */}
+      <div 
+        className="fixed inset-0 w-full h-full bg-cover bg-center"
+        style={{
+          backgroundImage: 'url(https://images.unsplash.com/photo-1581351123004-757df051db8e?w=1920&q=80)',
+        }}
+      />
+      
+      {/* Dark Overlay */}
+      <div className="fixed inset-0 bg-black/65" />
+      
+      {/* Gradient Overlays */}
+      <div className="fixed inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70" />
+      <div className="fixed inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/30" />
+      
+      {/* Animated Glows */}
+      <motion.div
+        className="fixed inset-0"
+        style={{
+          background: 'radial-gradient(circle at 50% 40%, rgba(255, 50, 80, 0.15) 0%, transparent 50%)',
+        }}
+        animate={{
+          opacity: [0.4, 0.7, 0.4],
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+      
+      <motion.div
+        className="fixed inset-0"
+        style={{
+          background: 'radial-gradient(circle at 30% 60%, rgba(200, 50, 150, 0.1) 0%, transparent 50%)',
+        }}
+        animate={{
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 1,
+        }}
+      />
 
-        {/* User Info Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 mb-8 border border-blue-500/30"
-        >
-          <div className="flex items-center gap-6">
-            <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-blue-500 flex-shrink-0">
-              <Image
-                src={profile.user.avatar}
-                alt={profile.user.username}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-3xl font-bold text-white mb-2 truncate">
-                {profile.user.username}
-              </h2>
-              <a
-                href={profile.user.profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 transition-colors inline-block"
-              >
-                View Steam Profile →
-              </a>
-            </div>
-          </div>
-        </motion.div>
+      {/* UI Layer */}
+      <div className="relative z-10">
+        <Sidebar activeItem={activeNav} onItemClick={setActiveNav} onLogout={handleLogout} />
+        <RightPanel />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30"
-          >
-            <h3 className="text-gray-400 text-sm uppercase mb-2">Total Games</h3>
-            <p className="text-4xl font-bold text-white">{profile.stats.totalGames.toLocaleString()}</p>
-          </motion.div>
+        {/* Main Content */}
+        <main className="ml-20 mr-72 py-16 px-12 max-lg:ml-0 max-lg:mr-0 max-lg:px-6">
+          {/* Profile Section */}
+          <ProfileCard
+            username={profile.user.username}
+            avatar={profile.user.avatar}
+            profileUrl={profile.user.profileUrl}
+            totalGames={profile.stats.totalGames}
+            totalPlaytimeHours={profile.stats.totalPlaytimeHours}
+          />
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30"
-          >
-            <h3 className="text-gray-400 text-sm uppercase mb-2">Total Playtime</h3>
-            <p className="text-4xl font-bold text-white">
-              {profile.stats.totalPlaytimeHours.toLocaleString()}h
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Recent Games */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-blue-500/30"
-        >
-          <h2 className="text-2xl font-bold text-white mb-6">Recently Played Games</h2>
-          
-          {profile.recentGames.length === 0 ? (
-            <p className="text-gray-400">No recently played games found.</p>
+          {/* Featured Game */}
+          {heroGame ? (
+            <HeroCard
+              title={heroGame.name}
+              image={heroGame.logoUrl || heroGame.iconUrl}
+              genre="Game"
+              duration={formatPlaytime(heroGame.playtimeForever)}
+              difficulty="Medium"
+            />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profile.recentGames.map((game, index) => (
-                <motion.div
-                  key={game.appId}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + index * 0.05 }}
-                  className="bg-gray-700/50 rounded-lg p-4 hover:bg-gray-700/70 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    {game.logoUrl && (
-                      <div className="relative w-16 h-16 rounded overflow-hidden flex-shrink-0">
-                        <Image
-                          src={game.logoUrl}
-                          alt={game.name}
-                          fill
-                          className="object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src !== game.iconUrl) {
-                              target.src = game.iconUrl;
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold truncate mb-1">
-                        {game.name}
-                      </h3>
-                      <div className="text-sm text-gray-400 space-y-0.5">
-                        {game.playtime2Weeks > 0 && (
-                          <p>Last 2 weeks: {formatPlaytime(game.playtime2Weeks)}</p>
-                        )}
-                        <p>Total: {formatPlaytime(game.playtimeForever)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="max-w-4xl mb-12">
+              <div className="bg-[#141414] rounded-lg p-8 border border-[#1E1E1E]">
+                <h1 className="text-white/90 text-3xl font-medium mb-4">Welcome, {profile.user.username}!</h1>
+                <p className="text-[#B5B5B5]">No games found. Start playing some games to see them here.</p>
+              </div>
             </div>
           )}
-        </motion.div>
+          
+          {/* All Owned Games */}
+          {otherGames.length > 0 && (
+            <GameGrid games={otherGames} title="Your Games Library" />
+          )}
+
+          {sortedOwnedGames.length === 0 && (
+            <div className="bg-[#141414] rounded-lg p-8 border border-[#1E1E1E]">
+              <p className="text-[#B5B5B5] text-center">No games in your library yet.</p>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

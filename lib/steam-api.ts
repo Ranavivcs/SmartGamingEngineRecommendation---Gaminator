@@ -99,7 +99,7 @@ export async function getOwnedGames(steamId: string): Promise<SteamGame[]> {
         include_played_free_games: 1,
       }
     );
-
+    console.log(data.response?.games);
     return data.response?.games || [];
   } catch (error) {
     console.error('Error fetching owned games:', error);

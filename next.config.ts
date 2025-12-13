@@ -23,8 +23,17 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'cdn.fastly.steamstatic.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.cloudflare.steamstatic.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
+  serverComponentsExternalPackages: ['jsonwebtoken'],
 };
 
 export default nextConfig;
