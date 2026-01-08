@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, TrendingUp, Search, Loader2, X } from 'lucide-react';
+import { Sparkles, Trophy, TrendingUp, Search, Loader2, X, History } from 'lucide-react';
 import { Sidebar } from '../PremiumDashboard/Sidebar';
 import RecommendationCard, { Recommendation } from './RecommendationCard';
 import FilterPanel, { Filters } from './FilterPanel';
@@ -34,15 +34,33 @@ export default function RecommendationsView() {
   const [activeQuery, setActiveQuery] = useState<string | null>(null);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [activeFiltersDescription, setActiveFiltersDescription] = useState<string | null>(null);
+  // Search history cache: query -> games
+  const [searchHistory, setSearchHistory] = useState<Record<string, Recommendation[]>>({});
 
   // Ref to store the debounce timeout
   const filterDebounceRef = useRef<NodeJS.Timeout | null>(null);
   // Ref to track if this is the initial mount (to avoid fetching on page load)
   const isInitialMount = useRef(true);
+  // Ref to track if loading from history (to skip re-fetch)
+  const loadingFromHistoryRef = useRef(false);
 
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiSearchQuery.trim() || isSearching) return;
+
+    const trimmedQuery = aiSearchQuery.trim();
+
+    // Check if we already have cached results for this query
+    const cachedResults = searchHistory[trimmedQuery];
+    if (cachedResults) {
+      // Use cached results instead of making an API call
+      loadingFromHistoryRef.current = true;
+      setAiRecommendations(cachedResults);
+      setActiveQuery(trimmedQuery);
+      setSearchError(null);
+      setActiveFiltersDescription(null);
+      return;
+    }
 
     setIsSearching(true);
     setSearchError(null);
@@ -72,12 +90,40 @@ export default function RecommendationsView() {
 
       setAiRecommendations(data.recommendations);
       setActiveQuery(aiSearchQuery);
+      // Cache the search results
+      setSearchHistory((prev) => ({
+        ...prev,
+        [aiSearchQuery.trim()]: data.recommendations,
+      }));
     } catch (error) {
       console.error('AI Search error:', error);
       setSearchError(error instanceof Error ? error.message : 'Something went wrong');
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Load cached search results instantly
+  const loadFromHistory = (query: string) => {
+    const cachedResults = searchHistory[query];
+    if (cachedResults) {
+      // Mark that we're loading from history to skip the useEffect re-fetch
+      loadingFromHistoryRef.current = true;
+      setAiRecommendations(cachedResults);
+      setActiveQuery(query);
+      setAiSearchQuery(query);
+      setSearchError(null);
+      setActiveFiltersDescription(null);
+    }
+  };
+
+  // Remove a query from history
+  const removeFromHistory = (query: string) => {
+    setSearchHistory((prev) => {
+      const newHistory = { ...prev };
+      delete newHistory[query];
+      return newHistory;
+    });
   };
 
   const clearAiSearch = () => {
@@ -177,6 +223,12 @@ export default function RecommendationsView() {
     // Skip the initial mount to avoid fetching on page load
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      return;
+    }
+
+    // Skip if loading from history (we already have cached results)
+    if (loadingFromHistoryRef.current) {
+      loadingFromHistoryRef.current = false;
       return;
     }
 
@@ -368,6 +420,41 @@ export default function RecommendationsView() {
                 <p className="mt-2 text-xs text-[#606060] ml-1">
                   Try: "A relaxing farming game with multiplayer" or "Fast-paced shooters like Valorant"
                 </p>
+
+                {/* Search History */}
+                {Object.keys(searchHistory).length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <History className="w-3.5 h-3.5 text-[#606060]" />
+                      <span className="text-xs text-[#606060]">Previous searches</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.keys(searchHistory).map((query) => (
+                        <div
+                          key={query}
+                          className="group flex items-center gap-1.5 px-3 py-1.5 bg-[#141414] border border-[#1E1E1E] rounded-full hover:border-violet-500/30 hover:bg-violet-500/5 transition-all cursor-pointer"
+                        >
+                          <button
+                            onClick={() => loadFromHistory(query)}
+                            className="text-sm text-[#A0A0A0] group-hover:text-violet-300 transition-colors"
+                          >
+                            {query}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromHistory(query);
+                            }}
+                            className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 rounded-full transition-all"
+                            title="Remove from history"
+                          >
+                            <X className="w-3 h-3 text-red-400" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Error Message */}
                 {searchError && (
