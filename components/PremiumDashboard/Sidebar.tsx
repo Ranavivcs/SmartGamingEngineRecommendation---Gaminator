@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Compass, Library, TrendingUp, Settings, User, LogOut } from 'lucide-react';
+import { Compass, Library, Settings, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
@@ -9,14 +9,12 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
-export function Sidebar({ activeItem = 'home', onItemClick, onLogout }: SidebarProps) {
+export function Sidebar({ activeItem = 'explore', onItemClick, onLogout }: SidebarProps) {
   const router = useRouter();
 
   const navItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'discover', icon: Compass, label: 'Discover' },
-    { id: 'library', icon: Library, label: 'Library' },
-    { id: 'trending', icon: TrendingUp, label: 'Trending' },
+    { id: 'explore', icon: Compass, label: 'Explore', route: '/recommendations' },
+    { id: 'library', icon: Library, label: 'Library', route: '/dashboard' },
   ];
 
   const bottomItems = [
@@ -24,7 +22,10 @@ export function Sidebar({ activeItem = 'home', onItemClick, onLogout }: SidebarP
     { id: 'profile', icon: User, label: 'Profile' },
   ];
 
-  const handleClick = (itemId: string) => {
+  const handleClick = (itemId: string, route?: string) => {
+    if (route) {
+      router.push(route);
+    }
     if (onItemClick) {
       onItemClick(itemId);
     }
@@ -46,7 +47,7 @@ export function Sidebar({ activeItem = 'home', onItemClick, onLogout }: SidebarP
           return (
             <button
               key={item.id}
-              onClick={() => handleClick(item.id)}
+              onClick={() => handleClick(item.id, item.route)}
               className="relative flex items-center justify-center w-12 h-12 rounded transition-colors hover:bg-[#2A2A2A] group"
               aria-label={item.label}
             >

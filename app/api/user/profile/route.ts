@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { getUserBySteamId } from '@/lib/db';
 import { getOwnedGames, getRecentlyPlayedGames, calculateTotalPlaytime } from '@/lib/steam-api';
+import { enrichGamesWithRAWG, logRAWGResponse } from '@/lib/rawg-api';
 
 export async function GET() {
   try {
@@ -18,12 +19,28 @@ export async function GET() {
     }
 
     // Fetch Steam data in parallel for better performance
+    // Pass profileUrl for security validation
     const [ownedGames, recentGames] = await Promise.all([
       getOwnedGames(session.steamId),
       getRecentlyPlayedGames(session.steamId),
     ]);
 
     const totalPlaytime = calculateTotalPlaytime(ownedGames);
+
+    // RAWG Enrichment: Fetch additional metadata for games
+    // Sort by playtime to prioritize most-played games for enrichment
+    const sortedGames = [...ownedGames].sort((a, b) => b.playtime_forever - a.playtime_forever);
+    const gamesToEnrich = sortedGames.map(g => ({ appid: g.appid, name: g.name }));
+
+    // Enrich top 10 most-played games with RAWG data and log to console
+    const enrichedGames = await enrichGamesWithRAWG(gamesToEnrich, {
+      maxGames: 10,
+      delayMs: 200,
+      logProgress: true,
+    });
+
+    // Log full RAWG response data for inspection
+    logRAWGResponse(enrichedGames);
 
     return NextResponse.json({
       user: {

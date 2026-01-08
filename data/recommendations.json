@@ -1,0 +1,256 @@
+{
+  "recommendations": [
+    {
+      "name": "Hades",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/header.jpg",
+      "similarity": 95,
+      "genre": "Action Roguelike",
+      "mode": "solo",
+      "difficulty": "challenging",
+      "playTime": "medium",
+      "releaseDate": "2020-09-17",
+      "description": "Based on your 200+ hours in roguelikes and love for fast-paced combat, Hades perfectly matches your playstyle. Its tight combat loop and narrative depth align with your preference for story-rich action games.",
+      "tags": [
+        "Roguelike",
+        "Singleplayer",
+        "Dungeon Crawler",
+        "Procedural Generation",
+        "Top-Down",
+        "Fast-Paced",
+        "Mythology",
+        "Challenging"
+      ]
+    },
+    {
+      "name": "Deep Rock Galactic",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/548430/header.jpg",
+      "similarity": 91,
+      "genre": "Co-op Shooter",
+      "mode": "coop",
+      "difficulty": "moderate",
+      "playTime": "medium",
+      "releaseDate": "2020-05-13",
+      "description": "Your co-op gaming sessions with friends and love for team-based shooters make Deep Rock Galactic a perfect fit. The procedural caves and class system match your exploration tendencies.",
+      "tags": [
+        "Co-op",
+        "FPS",
+        "Procedural Generation",
+        "Dwarves",
+        "Mining",
+        "Class-Based",
+        "PvE",
+        "Teamwork"
+      ]
+    },
+    {
+      "name": "Baldur's Gate 3",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg",
+      "similarity": 88,
+      "genre": "CRPG",
+      "mode": "multiplayer",
+      "difficulty": "moderate",
+      "playTime": "long",
+      "releaseDate": "2023-08-03",
+      "description": "Your extensive playtime in RPGs and appreciation for meaningful choices suggests you'll love BG3. The D&D mechanics complement your strategic approach to combat encounters.",
+      "tags": [
+        "Story Rich",
+        "Turn-Based Combat",
+        "Fantasy",
+        "Choices Matter",
+        "Party-Based",
+        "Romance",
+        "Dungeons & Dragons",
+        "Co-op"
+      ]
+    },
+    {
+      "name": "Hollow Knight",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/367520/header.jpg",
+      "similarity": 86,
+      "genre": "Metroidvania",
+      "mode": "solo",
+      "difficulty": "challenging",
+      "playTime": "long",
+      "releaseDate": "2017-02-24",
+      "description": "Your appreciation for atmospheric exploration and skill-based combat makes Hollow Knight ideal. The interconnected world design matches your completionist tendencies.",
+      "tags": [
+        "Metroidvania",
+        "Souls-like",
+        "Exploration",
+        "Atmospheric",
+        "Indie",
+        "Dark Fantasy",
+        "Challenging",
+        "Beautiful"
+      ]
+    },
+    {
+      "name": "Apex Legends",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/header.jpg",
+      "similarity": 83,
+      "genre": "Battle Royale Shooter",
+      "mode": "multiplayer",
+      "difficulty": "moderate",
+      "playTime": "short",
+      "releaseDate": "2019-02-04",
+      "description": "Your competitive FPS history and squad-based play sessions indicate Apex would suit your playstyle. The legend abilities align with your preference for tactical gameplay.",
+      "tags": [
+        "Battle Royale",
+        "FPS",
+        "Competitive",
+        "Fast-Paced",
+        "Hero Shooter",
+        "Online",
+        "Squads",
+        "PvP"
+      ]
+    },
+    {
+      "name": "Stardew Valley",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/header.jpg",
+      "similarity": 79,
+      "genre": "Simulation RPG",
+      "mode": "solo",
+      "difficulty": "casual",
+      "playTime": "long",
+      "releaseDate": "2016-02-26",
+      "description": "Your late-night gaming sessions and interest in relaxing gameplay suggest Stardew Valley as a perfect wind-down game. The farming loop matches your progression-focused playstyle.",
+      "tags": [
+        "Farming",
+        "Life Sim",
+        "Relaxing",
+        "Pixel Art",
+        "Crafting",
+        "Exploration",
+        "Indie",
+        "Singleplayer"
+      ]
+    },
+    {
+      "name": "Dead Cells",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/588650/header.jpg",
+      "similarity": 84,
+      "genre": "Roguevania",
+      "mode": "solo",
+      "difficulty": "challenging",
+      "playTime": "medium",
+      "releaseDate": "2018-08-07",
+      "description": "Your mastery of action games and love for tight combat mechanics make Dead Cells a natural choice. The procedural levels and weapon variety match your experimentation style.",
+      "tags": [
+        "Roguelike",
+        "Action",
+        "Metroidvania",
+        "Pixel Art",
+        "Fast-Paced",
+        "Souls-like",
+        "Indie",
+        "Challenging"
+      ]
+    },
+    {
+      "name": "Elden Ring",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg",
+      "similarity": 82,
+      "genre": "Action RPG",
+      "mode": "multiplayer",
+      "difficulty": "challenging",
+      "playTime": "long",
+      "releaseDate": "2022-02-25",
+      "description": "Your souls-like experience and open-world exploration hours suggest Elden Ring will captivate you. The build variety complements your theorycrafting tendencies.",
+      "tags": [
+        "Souls-like",
+        "Open World",
+        "RPG",
+        "Dark Fantasy",
+        "Action",
+        "Difficult",
+        "Exploration",
+        "Co-op"
+      ]
+    },
+    {
+      "name": "Celeste",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/504230/header.jpg",
+      "similarity": 77,
+      "genre": "Precision Platformer",
+      "mode": "solo",
+      "difficulty": "challenging",
+      "playTime": "medium",
+      "releaseDate": "2018-01-25",
+      "description": "Your patience with difficult games and love for tight controls make Celeste a great match. The assist mode options align with your preference for accessibility.",
+      "tags": [
+        "Platformer",
+        "Difficult",
+        "Indie",
+        "Pixel Art",
+        "Story Rich",
+        "Singleplayer",
+        "Precision",
+        "Emotional"
+      ]
+    },
+    {
+      "name": "Valheim",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/892970/header.jpg",
+      "similarity": 75,
+      "genre": "Survival Crafting",
+      "mode": "coop",
+      "difficulty": "moderate",
+      "playTime": "long",
+      "releaseDate": "2021-02-02",
+      "description": "Your co-op building sessions and survival game hours indicate Valheim fits your style. The Viking theme matches your interest in mythology-based games.",
+      "tags": [
+        "Survival",
+        "Open World",
+        "Crafting",
+        "Co-op",
+        "Vikings",
+        "Building",
+        "Exploration",
+        "PvE"
+      ]
+    },
+    {
+      "name": "Risk of Rain 2",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/632360/header.jpg",
+      "similarity": 80,
+      "genre": "Roguelike Shooter",
+      "mode": "coop",
+      "difficulty": "challenging",
+      "playTime": "medium",
+      "releaseDate": "2020-08-11",
+      "description": "Your roguelike passion and co-op preferences make Risk of Rain 2 perfect. The escalating chaos matches your love for high-intensity gaming sessions.",
+      "tags": [
+        "Roguelike",
+        "Third-Person Shooter",
+        "Co-op",
+        "Action",
+        "Multiplayer",
+        "Sci-fi",
+        "Difficult",
+        "Replayable"
+      ]
+    },
+    {
+      "name": "Terraria",
+      "image": "https://cdn.cloudflare.steamstatic.com/steam/apps/105600/header.jpg",
+      "similarity": 73,
+      "genre": "Sandbox Adventure",
+      "mode": "multiplayer",
+      "difficulty": "moderate",
+      "playTime": "long",
+      "releaseDate": "2011-05-16",
+      "description": "Your crafting game history and exploration tendencies suggest Terraria's depth will hook you. The boss progression aligns with your goal-oriented gameplay.",
+      "tags": [
+        "Sandbox",
+        "Survival",
+        "2D",
+        "Crafting",
+        "Adventure",
+        "Multiplayer",
+        "Pixel Art",
+        "Open World"
+      ]
+    }
+  ]
+}

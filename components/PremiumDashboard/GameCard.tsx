@@ -63,9 +63,6 @@ export function GameCard({
       <div className="p-4">
         <h3 className="text-white/90 font-medium mb-2 truncate tracking-tight">{name}</h3>
         <div className="text-[#B5B5B5] text-sm space-y-1">
-          {playtime2Weeks && playtime2Weeks > 0 && (
-            <p>Last 2 weeks: {formatPlaytime(playtime2Weeks)}</p>
-          )}
           <p>Total: {formatPlaytime(playtimeForever)}</p>
         </div>
       </div>

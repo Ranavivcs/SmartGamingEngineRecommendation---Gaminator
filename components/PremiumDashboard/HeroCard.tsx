@@ -54,10 +54,7 @@ export function HeroCard({ title, image, genre, duration, difficulty }: HeroCard
             )}
           </div>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white/90 rounded-lg border border-white/20 transition-colors">
-          <Play className="w-5 h-5" />
-          <span>Play Now</span>
-        </button>
+        
       </div>
     </div>
   );

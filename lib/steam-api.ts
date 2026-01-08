@@ -20,6 +20,7 @@ export interface SteamGame {
   playtime_forever: number;
   img_icon_url: string;
   img_logo_url: string;
+  rtime_last_played: number;
   playtime_2weeks?: number;
 }
 
@@ -100,7 +101,9 @@ export async function getOwnedGames(steamId: string): Promise<SteamGame[]> {
       }
     );
     console.log(data.response?.games);
-    return data.response?.games || [];
+    const gamesNames = data.response?.games?.map((game) => {return {name: game.name, playTime: game.playtime_forever , lastPlayed: game.rtime_last_played}});
+    console.log(gamesNames);
+    return data.response?.games || [];  
   } catch (error) {
     console.error('Error fetching owned games:', error);
     return [];

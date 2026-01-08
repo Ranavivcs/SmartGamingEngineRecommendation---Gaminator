@@ -8,6 +8,7 @@ import { RightPanel } from '@/components/PremiumDashboard/RightPanel';
 import { HeroCard } from '@/components/PremiumDashboard/HeroCard';
 import { GameGrid } from '@/components/PremiumDashboard/GameGrid';
 import { ProfileCard } from '@/components/PremiumDashboard/ProfileCard';
+import { Toast } from './Toast';
 
 interface Game {
   appId: number;
@@ -38,7 +39,9 @@ export function DashboardView() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeNav, setActiveNav] = useState('home');
+  const [activeNav, setActiveNav] = useState('library');
+  const [showToast, setShowToast] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchProfile();
@@ -56,6 +59,15 @@ export function DashboardView() {
       }
       const data = await response.json();
       setProfile(data);
+      
+      // Show toast notification when games are loaded
+      if (data.ownedGames && data.ownedGames.length > 0) {
+        setShowToast(true);
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          setShowToast(false);
+        }, 5000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
@@ -88,10 +100,24 @@ export function DashboardView() {
   // Get featured game (most played game)
   const heroGame = sortedOwnedGames?.[0] || profile?.recentGames?.[0] || null;
   
-  // Get other games (skip the hero game)
-  const otherGames = sortedOwnedGames
-    .filter((game) => game.appId !== heroGame?.appId)
-    .slice(0, 11); // Show 11 more games (12 total including hero)
+  // Pagination settings
+  const gamesPerPage = 8;
+  
+  // Get all games (skip the hero game)
+  const allOtherGames = sortedOwnedGames;
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(allOtherGames.length / gamesPerPage);
+  const startIndex = (currentPage - 1) * gamesPerPage;
+  const endIndex = startIndex + gamesPerPage;
+  const paginatedGames = allOtherGames.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when games change
+  useEffect(() => {
+    if (allOtherGames.length > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [allOtherGames.length, totalPages, currentPage]);
 
   if (loading) {
     return (
@@ -176,7 +202,7 @@ export function DashboardView() {
       {/* UI Layer */}
       <div className="relative z-10">
         <Sidebar activeItem={activeNav} onItemClick={setActiveNav} onLogout={handleLogout} />
-        <RightPanel />
+        {/* <RightPanel /> */}
 
         {/* Main Content */}
         <main className="ml-20 mr-72 py-16 px-12 max-lg:ml-0 max-lg:mr-0 max-lg:px-6">
@@ -208,17 +234,67 @@ export function DashboardView() {
           )}
           
           {/* All Owned Games */}
-          {otherGames.length > 0 && (
-            <GameGrid games={otherGames} title="Your Games Library" />
+          {paginatedGames.length > 0 && (
+            <>
+              <GameGrid games={paginatedGames} title="Your Games Library" />
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-[#141414] text-white/90 text-sm rounded border border-[#1E1E1E] hover:bg-[#1A1A1A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          currentPage === page
+                            ? 'bg-white/10 text-white border border-white/20'
+                            : 'bg-[#141414] text-[#B5B5B5] border border-[#1E1E1E] hover:bg-[#1A1A1A]'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-[#141414] text-white/90 text-sm rounded border border-[#1E1E1E] hover:bg-[#1A1A1A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                  
+                  <span className="text-[#B5B5B5] text-sm ml-4">
+                    Page {currentPage} of {totalPages} ({allOtherGames.length} games)
+                  </span>
+                </div>
+              )}
+            </>
           )}
 
           {sortedOwnedGames.length === 0 && (
             <div className="bg-[#141414] rounded-lg p-8 border border-[#1E1E1E]">
-              <p className="text-[#B5B5B5] text-center">No games in your library yet.</p>
+              <p className="text-[#B5B5B5] text-center">No games in your library yet or your profile may be hidden.</p>
             </div>
           )}
         </main>
       </div>
+
+      {/* Toast Notification */}
+      <Toast
+        message="All games loaded successfully"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </div>
   );
 }
