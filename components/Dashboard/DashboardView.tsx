@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import useSWR from 'swr';
 import { Sidebar } from '@/components/PremiumDashboard/Sidebar';
-import { RightPanel } from '@/components/PremiumDashboard/RightPanel';
 import { HeroCard } from '@/components/PremiumDashboard/HeroCard';
 import { GameGrid } from '@/components/PremiumDashboard/GameGrid';
 import { ProfileCard } from '@/components/PremiumDashboard/ProfileCard';
@@ -34,46 +34,49 @@ interface UserProfile {
   ownedGames: Game[];
 }
 
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('UNAUTHORIZED');
+    }
+    throw new Error('Failed to fetch profile');
+  }
+  return response.json();
+};
+
 export function DashboardView() {
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState('library');
   const [showToast, setShowToast] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const toastShownRef = useRef(false);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch('/api/user/profile');
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/login');
-          return;
-        }
-        throw new Error('Failed to fetch profile');
-      }
-      const data = await response.json();
-      setProfile(data);
-      
-      // Show toast notification when games are loaded
-      if (data.ownedGames && data.ownedGames.length > 0) {
-        setShowToast(true);
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-          setShowToast(false);
-        }, 5000);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
-    } finally {
-      setLoading(false);
+  const { data: profile, error, isLoading } = useSWR<UserProfile>(
+    '/api/user/profile',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // Don't refetch for 60 seconds
     }
-  };
+  );
+
+  // Handle unauthorized error
+  useEffect(() => {
+    if (error?.message === 'UNAUTHORIZED') {
+      router.push('/login');
+    }
+  }, [error, router]);
+
+  // Show toast only once when data first loads
+  useEffect(() => {
+    if (profile?.ownedGames?.length && !toastShownRef.current) {
+      toastShownRef.current = true;
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 5000);
+    }
+  }, [profile]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout');
@@ -119,7 +122,7 @@ export function DashboardView() {
     }
   }, [allOtherGames.length, totalPages, currentPage]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="relative w-full min-h-screen overflow-hidden bg-black flex items-center justify-center">
         <motion.div
@@ -133,13 +136,13 @@ export function DashboardView() {
     );
   }
 
-  if (error || !profile) {
+  if ((error && error.message !== 'UNAUTHORIZED') || !profile) {
     return (
       <div className="relative w-full min-h-screen overflow-hidden bg-black flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white/90 text-xl mb-4">{error || 'Failed to load profile'}</p>
+          <p className="text-white/90 text-xl mb-4">{error?.message || 'Failed to load profile'}</p>
           <button
-            onClick={fetchProfile}
+            onClick={() => window.location.reload()}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/90 rounded-lg border border-white/20 transition-colors"
           >
             Retry

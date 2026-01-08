@@ -21,11 +21,13 @@ function validateSteamResponse(searchParams: URLSearchParams): boolean {
   const mode = searchParams.get('openid.mode');
   const claimedId = searchParams.get('openid.claimed_id');
   const identity = searchParams.get('openid.identity');
-  
+
   // Basic validation
-  return mode === 'id_res' && 
-         (claimedId?.includes('steamcommunity.com') || identity?.includes('steamcommunity.com')) &&
-         !!searchParams.get('openid.sig');
+  const isSteamCommunity = Boolean(
+    claimedId?.includes('steamcommunity.com') || identity?.includes('steamcommunity.com')
+  );
+
+  return mode === 'id_res' && isSteamCommunity && !!searchParams.get('openid.sig');
 }
 
 export async function GET(request: NextRequest) {

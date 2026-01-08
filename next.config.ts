@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverComponentsExternalPackages: ['jsonwebtoken'],
+  serverExternalPackages: ['jsonwebtoken'],
 };
 
 export default nextConfig;

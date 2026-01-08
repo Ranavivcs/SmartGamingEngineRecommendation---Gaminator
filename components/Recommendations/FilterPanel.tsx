@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Filter, X, ChevronDown } from 'lucide-react';
+import { Filter, X, ChevronDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 export interface Filters {
@@ -16,6 +16,7 @@ interface FilterPanelProps {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
   availableGenres: string[];
+  isLoading?: boolean;
 }
 
 const difficulties = [
@@ -74,7 +75,7 @@ function FilterSection({ title, children, defaultOpen = true }: FilterSectionPro
   );
 }
 
-export default function FilterPanel({ filters, onFiltersChange, availableGenres }: FilterPanelProps) {
+export default function FilterPanel({ filters, onFiltersChange, availableGenres, isLoading = false }: FilterPanelProps) {
   const activeFilterCount =
     filters.genres.length +
     filters.difficulties.length +
@@ -113,15 +114,22 @@ export default function FilterPanel({ filters, onFiltersChange, availableGenres 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-white/70" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+            ) : (
+              <Filter className="w-4 h-4 text-white/70" />
+            )}
             <span className="text-sm font-medium text-white/90">Filters</span>
             {activeFilterCount > 0 && (
-              <span className="px-1.5 py-0.5 bg-white/10 rounded text-xs text-white/80">
+              <span className={`px-1.5 py-0.5 rounded text-xs ${isLoading ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/80'}`}>
                 {activeFilterCount}
               </span>
             )}
+            {isLoading && (
+              <span className="text-xs text-amber-400">Loading...</span>
+            )}
           </div>
-          {activeFilterCount > 0 && (
+          {activeFilterCount > 0 && !isLoading && (
             <button
               onClick={clearAllFilters}
               className="flex items-center gap-1 text-xs text-[#A0A0A0] hover:text-white transition-colors"
