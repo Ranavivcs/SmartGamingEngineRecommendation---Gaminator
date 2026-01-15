@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Trophy, Clock, Users, Gamepad2, Sparkles } from 'lucide-react';
+import { Trophy, Clock, Users, Gamepad2, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useReviewModal } from './ReviewModalContext';
 
 export interface Recommendation {
   name: string;
@@ -24,6 +26,10 @@ interface RecommendationCardProps {
   tier: TrophyTier;
   index: number;
   onClick?: () => void;
+  onReview: (game: Recommendation, reaction: 'like' | 'dislike', reasons?: string[], detailsText?: string) => void;
+  isDislikeModalOpen: boolean;
+  isThankYouOpen: boolean;
+  isExiting?: boolean;
 }
 
 const tierConfig = {
@@ -71,16 +77,41 @@ const playTimeLabels = {
   long: '4h+ sessions',
 };
 
-export default function RecommendationCard({ recommendation, tier, index, onClick }: RecommendationCardProps) {
+export default function RecommendationCard({ 
+  recommendation, 
+  tier, 
+  index, 
+  onClick,
+  onReview,
+  isDislikeModalOpen,
+  isThankYouOpen,
+  isExiting = false,
+}: RecommendationCardProps) {
   const config = tierConfig[tier];
   const isGold = tier === 'gold';
+  const { openDislikeModal } = useReviewModal();
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onReview(recommendation, 'like');
+  };
+
+  const handleDislike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openDislikeModal(recommendation);
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
-      whileHover={{ y: -4 }}
+      animate={isExiting ? { opacity: 0, x: -1000, scale: 0.8 } : { opacity: 1, x: 0, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -1000, scale: 0.8 }}
+      transition={{ 
+        duration: isExiting ? 0.5 : 0.4, 
+        delay: isExiting ? 0 : index * 0.1,
+        ease: isExiting ? 'easeIn' : 'easeOut'
+      }}
+      whileHover={isExiting ? {} : { y: -4 }}
       onClick={onClick}
       className={`relative bg-[#141414] rounded-xl border ${config.borderColor} ${config.hoverBorderColor} transition-all duration-300 overflow-hidden group cursor-pointer ${isGold ? 'max-w-2xl' : ''}`}
       style={{
@@ -128,9 +159,29 @@ export default function RecommendationCard({ recommendation, tier, index, onClic
       <div className="p-4 space-y-3">
         {/* Title & Genre */}
         <div className="space-y-1">
-          <h3 className={`font-semibold text-white/90 tracking-tight truncate ${isGold ? 'text-xl' : 'text-lg'}`}>
-            {recommendation.name}
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className={`font-semibold text-white/90 tracking-tight truncate flex-1 ${isGold ? 'text-xl' : 'text-lg'}`}>
+              {recommendation.name}
+            </h3>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={handleLike}
+                disabled={isDislikeModalOpen || isThankYouOpen}
+                className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500/10"
+                title="Like this recommendation"
+              >
+                <ThumbsUp className="w-4 h-4 text-green-500 group-hover:scale-110 transition-transform" />
+              </button>
+              <button
+                onClick={handleDislike}
+                disabled={isDislikeModalOpen || isThankYouOpen}
+                className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500/10"
+                title="Dislike this recommendation"
+              >
+                <ThumbsDown className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+          </div>
           <p className="text-sm text-[#B5B5B5]">{recommendation.genre}</p>
         </div>
 

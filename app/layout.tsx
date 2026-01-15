@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ReviewModalProvider } from '@/components/Recommendations/ReviewModalContext';
+import GlobalDislikeModal from '@/components/Recommendations/GlobalDislikeModal';
 
 export const metadata: Metadata = {
   title: 'Gaming App - Sign In',
@@ -13,7 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ReviewModalProvider>
+          {children}
+          <GlobalDislikeModal />
+        </ReviewModalProvider>
+      </body>
     </html>
   );
 }

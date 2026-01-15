@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Trophy, TrendingUp, Search, Loader2, X, History } from 'lucide-react';
 import { Sidebar } from '../PremiumDashboard/Sidebar';
 import RecommendationCard, { Recommendation } from './RecommendationCard';
 import FilterPanel, { Filters } from './FilterPanel';
 import GameDetailModal from './GameDetailModal';
+import ThankYouMessage from './ThankYouMessage';
+import { useReviewModal } from './ReviewModalContext';
 import recommendationsData from '@/data/recommendations.json';
 
 // Type assertion for JSON data
@@ -36,6 +38,19 @@ export default function RecommendationsView() {
   const [activeFiltersDescription, setActiveFiltersDescription] = useState<string | null>(null);
   // Search history cache: query -> games
   const [searchHistory, setSearchHistory] = useState<Record<string, Recommendation[]>>({});
+  // Track reviewed/removed games by game name (used as ID)
+  const [reviewedGameIds, setReviewedGameIds] = useState<Set<string>>(new Set());
+  // Track games that are animating out
+  const [exitingGameIds, setExitingGameIds] = useState<Set<string>>(new Set());
+  // Global thank you message state
+  const [isThankYouOpen, setIsThankYouOpen] = useState(false);
+  // Get review modal context
+  const { submitReview, isDislikeModalOpen, setOnThankYouShow, setOnReviewSubmit } = useReviewModal();
+
+  // Register thank you callback with context
+  useEffect(() => {
+    setOnThankYouShow(() => () => setIsThankYouOpen(true));
+  }, [setOnThankYouShow]);
 
   // Ref to store the debounce timeout
   const filterDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -264,6 +279,48 @@ export default function RecommendationsView() {
     setSelectedGame(null);
   };
 
+  // Handle game review (like or dislike)
+  const handleGameReview = useCallback((game: Recommendation, reaction: 'like' | 'dislike', reasons: string[] = [], detailsText?: string, skipSubmit = false) => {
+    // Start exit animation
+    setExitingGameIds((prev) => new Set([...prev, game.name]));
+
+    // Close detail modal if this game was selected
+    if (selectedGame?.name === game.name) {
+      setIsModalOpen(false);
+      setSelectedGame(null);
+    }
+
+    // Submit review (this will log and show confetti/thank you)
+    // Skip if called from context callback to avoid loop
+    if (!skipSubmit) {
+      submitReview(game, reaction, reasons, detailsText);
+    }
+
+    // Remove game after animation completes
+    setTimeout(() => {
+      setReviewedGameIds((prev) => new Set([...prev, game.name]));
+      setExitingGameIds((prev) => {
+        const next = new Set(prev);
+        next.delete(game.name);
+        return next;
+      });
+    }, 500); // Match animation duration
+  }, [selectedGame, submitReview]);
+
+  // Register review submit callback with context (for dislike modal)
+  // Use a ref to store the latest handleGameReview to avoid dependency issues
+  const handleGameReviewRef = useRef(handleGameReview);
+  useEffect(() => {
+    handleGameReviewRef.current = handleGameReview;
+  }, [handleGameReview]);
+
+  useEffect(() => {
+    setOnReviewSubmit((game, reaction, reasons, detailsText) => {
+      // Skip submitReview call to avoid loop (submitReview already called before this)
+      handleGameReviewRef.current(game, reaction, reasons, detailsText, true);
+    });
+  }, [setOnReviewSubmit]);
+
   // Get unique genres from recommendations
   const availableGenres = useMemo(() => {
     const genres = new Set(recommendations.map((r) => r.genre));
@@ -273,6 +330,9 @@ export default function RecommendationsView() {
   // Filter and sort recommendations
   const filteredRecommendations = useMemo(() => {
     let result = [...recommendations];
+
+    // Remove reviewed games (but keep exiting games for animation)
+    result = result.filter((r) => !reviewedGameIds.has(r.name));
 
     // Apply filters
     if (filters.genres.length > 0) {
@@ -302,7 +362,7 @@ export default function RecommendationsView() {
     }
 
     return result;
-  }, [recommendations, filters]);
+  }, [recommendations, filters, reviewedGameIds]);
 
   const goldRecommendation = filteredRecommendations[0];
   const silverRecommendations = filteredRecommendations.slice(1, 4);
@@ -595,12 +655,19 @@ export default function RecommendationsView() {
                         <Trophy className="w-5 h-5 text-amber-400" />
                         <h2 className="text-lg font-medium text-white/90">Top Pick</h2>
                       </div>
-                      <RecommendationCard
-                        recommendation={goldRecommendation}
-                        tier="gold"
-                        index={0}
-                        onClick={() => handleCardClick(goldRecommendation)}
-                      />
+                      <AnimatePresence mode="wait">
+                        <RecommendationCard
+                          key={goldRecommendation.name}
+                          recommendation={goldRecommendation}
+                          tier="gold"
+                          index={0}
+                          onClick={() => handleCardClick(goldRecommendation)}
+                          onReview={handleGameReview}
+                          isDislikeModalOpen={isDislikeModalOpen}
+                          isThankYouOpen={isThankYouOpen}
+                          isExiting={exitingGameIds.has(goldRecommendation.name)}
+                        />
+                      </AnimatePresence>
                     </section>
                   )}
 
@@ -613,15 +680,21 @@ export default function RecommendationsView() {
                         <span className="text-sm text-[#A0A0A0]">({silverRecommendations.length})</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {silverRecommendations.map((rec, index) => (
-                          <RecommendationCard
-                            key={rec.name}
-                            recommendation={rec}
-                            tier="silver"
-                            index={index + 1}
-                            onClick={() => handleCardClick(rec)}
-                          />
-                        ))}
+                        <AnimatePresence mode="popLayout">
+                          {silverRecommendations.map((rec, index) => (
+                            <RecommendationCard
+                              key={rec.name}
+                              recommendation={rec}
+                              tier="silver"
+                              index={index + 1}
+                              onClick={() => handleCardClick(rec)}
+                              onReview={handleGameReview}
+                              isDislikeModalOpen={isDislikeModalOpen}
+                              isThankYouOpen={isThankYouOpen}
+                              isExiting={exitingGameIds.has(rec.name)}
+                            />
+                          ))}
+                        </AnimatePresence>
                       </div>
                     </section>
                   )}
@@ -635,15 +708,21 @@ export default function RecommendationsView() {
                         <span className="text-sm text-[#A0A0A0]">({bronzeRecommendations.length})</span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {bronzeRecommendations.map((rec, index) => (
-                          <RecommendationCard
-                            key={rec.name}
-                            recommendation={rec}
-                            tier="bronze"
-                            index={index + 4}
-                            onClick={() => handleCardClick(rec)}
-                          />
-                        ))}
+                        <AnimatePresence mode="popLayout">
+                          {bronzeRecommendations.map((rec, index) => (
+                            <RecommendationCard
+                              key={rec.name}
+                              recommendation={rec}
+                              tier="bronze"
+                              index={index + 4}
+                              onClick={() => handleCardClick(rec)}
+                              onReview={handleGameReview}
+                              isDislikeModalOpen={isDislikeModalOpen}
+                              isThankYouOpen={isThankYouOpen}
+                              isExiting={exitingGameIds.has(rec.name)}
+                            />
+                          ))}
+                        </AnimatePresence>
                       </div>
                     </section>
                   )}
@@ -697,6 +776,15 @@ export default function RecommendationsView() {
         recommendation={selectedGame}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        onReview={handleGameReview}
+        isDislikeModalOpen={isDislikeModalOpen}
+        isThankYouOpen={isThankYouOpen}
+      />
+
+      {/* Global Thank You Message */}
+      <ThankYouMessage
+        isOpen={isThankYouOpen}
+        onClose={() => setIsThankYouOpen(false)}
       />
     </div>
   );

@@ -1,14 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { X, Trophy, Clock, Users, Gamepad2, Sparkles, Calendar, Tag, ExternalLink } from 'lucide-react';
+import { X, Trophy, Clock, Users, Gamepad2, Sparkles, Calendar, Tag, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Recommendation } from './RecommendationCard';
+import { useReviewModal } from './ReviewModalContext';
 
 interface GameDetailModalProps {
   recommendation: Recommendation | null;
   isOpen: boolean;
   onClose: () => void;
+  onReview: (game: Recommendation, reaction: 'like' | 'dislike', reasons?: string[], detailsText?: string) => void;
+  isDislikeModalOpen: boolean;
+  isThankYouOpen: boolean;
 }
 
 const modeLabels = {
@@ -35,10 +40,29 @@ const difficultyConfig = {
   challenging: { label: 'Challenging', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
 };
 
-export default function GameDetailModal({ recommendation, isOpen, onClose }: GameDetailModalProps) {
+export default function GameDetailModal({ 
+  recommendation, 
+  isOpen, 
+  onClose,
+  onReview,
+  isDislikeModalOpen: globalDislikeModalOpen,
+  isThankYouOpen,
+}: GameDetailModalProps) {
+  const { openDislikeModal } = useReviewModal();
+
   if (!recommendation) return null;
 
   const diffConfig = difficultyConfig[recommendation.difficulty];
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onReview(recommendation, 'like');
+  };
+
+  const handleDislike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openDislikeModal(recommendation);
+  };
 
   return (
     <AnimatePresence>
@@ -87,10 +111,32 @@ export default function GameDetailModal({ recommendation, isOpen, onClose }: Gam
 
               {/* Title Overlay */}
               <div className="absolute bottom-4 left-6 right-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                  {recommendation.name}
-                </h2>
-                <p className="text-[#B5B5B5] mt-1">{recommendation.genre}</p>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+                      {recommendation.name}
+                    </h2>
+                    <p className="text-[#B5B5B5] mt-1">{recommendation.genre}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={handleLike}
+                      disabled={globalDislikeModalOpen || isThankYouOpen}
+                      className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 hover:border-green-500/50 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500/10"
+                      title="Like this recommendation"
+                    >
+                      <ThumbsUp className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
+                    </button>
+                    <button
+                      onClick={handleDislike}
+                      disabled={globalDislikeModalOpen || isThankYouOpen}
+                      className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500/10"
+                      title="Dislike this recommendation"
+                    >
+                      <ThumbsDown className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
