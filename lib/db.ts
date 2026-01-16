@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { createSupabaseServerClient } from './supabase';
 
 export interface User {
   steamId: string;
@@ -10,71 +9,104 @@ export interface User {
   lastLogin: string;
 }
 
-const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'users.json');
-
-// Ensure data directory exists
-function ensureDataDir(): void {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DB_PATH)) {
-    fs.writeFileSync(DB_PATH, JSON.stringify([], null, 2), 'utf-8');
-  }
+// Database row type (matches Supabase table structure)
+interface UserRow {
+  steam_id: string;
+  username: string;
+  avatar: string;
+  profile_url: string;
+  created_at: string;
+  last_login: string;
 }
 
-// Read users from file with error handling
-function readUsers(): User[] {
-  try {
-    ensureDataDir();
-    const data = fs.readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(data) as User[];
-  } catch (error) {
-    console.error('Error reading users database:', error);
-    return [];
-  }
+// Convert database row to User interface
+function rowToUser(row: UserRow): User {
+  return {
+    steamId: row.steam_id,
+    username: row.username,
+    avatar: row.avatar,
+    profileUrl: row.profile_url,
+    createdAt: row.created_at,
+    lastLogin: row.last_login,
+  };
 }
 
-// Write users to file with error handling
-function writeUsers(users: User[]): boolean {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(DB_PATH, JSON.stringify(users, null, 2), 'utf-8');
-    return true;
-  } catch (error) {
-    console.error('Error writing users database:', error);
-    return false;
-  }
+// Convert User interface to database row
+function userToRow(user: Partial<User> & { steamId: string }): Partial<UserRow> {
+  return {
+    steam_id: user.steamId,
+    username: user.username || 'Unknown',
+    avatar: user.avatar || '',
+    profile_url: user.profileUrl || `https://steamcommunity.com/profiles/${user.steamId}`,
+    last_login: new Date().toISOString(),
+  };
 }
 
 // Find user by Steam ID
-export function getUserBySteamId(steamId: string): User | null {
-  const users = readUsers();
-  return users.find((u) => u.steamId === steamId) || null;
+export async function getUserBySteamId(steamId: string): Promise<User | null> {
+  try {
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('steam_id', steamId)
+      .single();
+
+    if (error) {
+      // If user not found, return null (not an error)
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      // If table doesn't exist, provide helpful error message
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.error('❌ Database table "users" does not exist. Please run the migration in Supabase SQL Editor.');
+        throw new Error('Database table "users" does not exist. Please run the migration SQL in Supabase dashboard.');
+      }
+      console.error('Error fetching user from Supabase:', error);
+      throw error;
+    }
+
+    return data ? rowToUser(data as UserRow) : null;
+  } catch (error) {
+    console.error('Error in getUserBySteamId:', error);
+    throw error;
+  }
 }
 
-// Create or update user (optimized single operation)
-export function createOrUpdateUser(userData: Partial<User> & { steamId: string }): User {
-  const users = readUsers();
-  const existingIndex = users.findIndex((u) => u.steamId === userData.steamId);
-  const now = new Date().toISOString();
+// Create or update user (upsert operation)
+export async function createOrUpdateUser(
+  userData: Partial<User> & { steamId: string }
+): Promise<User> {
+  try {
+    const supabase = createSupabaseServerClient();
+    const now = new Date().toISOString();
+    
+    // Check if user exists to preserve created_at
+    const existing = await getUserBySteamId(userData.steamId);
+    const createdAt = existing?.createdAt || now;
 
-  const user: User = {
-    steamId: userData.steamId,
-    username: userData.username || 'Unknown',
-    avatar: userData.avatar || '',
-    profileUrl: userData.profileUrl || `https://steamcommunity.com/profiles/${userData.steamId}`,
-    createdAt: existingIndex >= 0 ? users[existingIndex].createdAt : now,
-    lastLogin: now,
-  };
+    const rowData = {
+      ...userToRow(userData),
+      created_at: createdAt,
+    };
 
-  if (existingIndex >= 0) {
-    users[existingIndex] = user;
-  } else {
-    users.push(user);
+    const { data, error } = await supabase
+      .from('users')
+      .upsert(rowData, {
+        onConflict: 'steam_id',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error upserting user to Supabase:', error);
+      throw new Error(`Failed to save user: ${error.message}`);
+    }
+
+    return rowToUser(data as UserRow);
+  } catch (error) {
+    console.error('Error in createOrUpdateUser:', error);
+    throw error;
   }
-
-  writeUsers(users);
-  return user;
 }
 

@@ -1,6 +1,8 @@
 import { Agent, tool, run } from '@openai/agents';
 import { z } from 'zod';
 import { getOwnedGames, getRecentlyPlayedGames, calculateTotalPlaytime } from '../steam-api';
+import { Review } from '@/types/review';
+import { createSupabaseServerClient } from '../supabase';
 
 // ============================================================================
 // Type Definitions
@@ -213,15 +215,149 @@ export const recommendationAgent = new Agent({
 /**
  * Generate game recommendations for a user based on their Steam profile
  */
+// Helper function to fetch user reviews directly from Supabase
+async function fetchUserReviews(steamId: string, since?: string): Promise<Review[]> {
+  try {
+    const supabase = createSupabaseServerClient();
+    
+    let query = supabase
+      .from('reviews')
+      .select('*')
+      .eq('steam_id', steamId)
+      .order('created_at', { ascending: false });
+
+    if (since) {
+      query = query.gte('created_at', since);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching reviews from Supabase:', error);
+      return [];
+    }
+
+    // Convert database rows to Review interface
+    return (data || []).map((row: any) => ({
+      gameId: row.game_id,
+      gameTitle: row.game_title,
+      reaction: row.reaction as 'like' | 'dislike',
+      reasons: row.reasons || [],
+      detailsText: row.details_text || undefined,
+      createdAt: row.created_at,
+    }));
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return [];
+  }
+}
+
+// Helper function to analyze reviews and extract preferences with detailed context
+function analyzeReviewsForPreferences(reviews: Review[]): { context: string; reviewDetails: Array<{ game: string; reaction: string; reasons: string[]; details?: string }> } {
+  if (reviews.length === 0) {
+    return { context: '', reviewDetails: [] };
+  }
+
+  const recentReviews = reviews
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10); // Last 10 reviews
+
+  const preferences: string[] = [];
+  const dislikes: Array<{ game: string; reasons: string[]; details?: string }> = [];
+  const likes: string[] = [];
+  const reviewDetails: Array<{ game: string; reaction: string; reasons: string[]; details?: string }> = [];
+
+  for (const review of recentReviews) {
+    reviewDetails.push({
+      game: review.gameTitle,
+      reaction: review.reaction,
+      reasons: review.reasons || [],
+      details: review.detailsText,
+    });
+
+    if (review.reaction === 'like') {
+      likes.push(review.gameTitle);
+    } else {
+      dislikes.push({
+        game: review.gameTitle,
+        reasons: review.reasons || [],
+        details: review.detailsText,
+      });
+      
+      // Analyze dislike reasons
+      for (const reason of review.reasons) {
+        if (reason.includes('Too complicated') || reason.includes('Too hard')) {
+          preferences.push(`User found "${review.gameTitle}" too complicated/challenging - prefer less challenging games`);
+        }
+        if (reason.includes('Too long') || reason.includes('too short')) {
+          if (reason.includes('Too long')) {
+            preferences.push(`User found "${review.gameTitle}" too long - prefer shorter games`);
+          } else {
+            preferences.push(`User found "${review.gameTitle}" too short - prefer longer games`);
+          }
+        }
+        if (reason.includes('Too boring') || reason.includes('slow')) {
+          preferences.push(`User found "${review.gameTitle}" too boring/slow - prefer more engaging/faster-paced games`);
+        }
+        if (reason.includes('Not my type')) {
+          preferences.push(`User didn't like the type/style of "${review.gameTitle}" - avoid similar styles`);
+        }
+      }
+      
+      // Check details text for additional insights
+      if (review.detailsText) {
+        const details = review.detailsText.toLowerCase();
+        if (details.includes('too hard') || details.includes('difficult') || details.includes('challenging')) {
+          preferences.push(`User found "${review.gameTitle}" too difficult - prefer easier games`);
+        }
+        if (details.includes('too long') || details.includes('lengthy')) {
+          preferences.push(`User found "${review.gameTitle}" too long - prefer shorter games`);
+        }
+        if (details.includes('too short') || details.includes('brief')) {
+          preferences.push(`User found "${review.gameTitle}" too short - prefer longer games`);
+        }
+      }
+    }
+  }
+
+  let reviewContext = '';
+  
+  if (likes.length > 0) {
+    reviewContext += `\n\nUser LIKED these games: ${likes.join(', ')}. Consider recommending similar games and mention this in the description.`;
+  }
+  
+  if (dislikes.length > 0) {
+    reviewContext += `\n\nUser DISLIKED these games with specific feedback:\n`;
+    for (const dislike of dislikes) {
+      reviewContext += `- "${dislike.game}": ${dislike.reasons.join(', ')}${dislike.details ? ` (Additional: ${dislike.details})` : ''}\n`;
+    }
+    reviewContext += `\nAvoid recommending similar games and ensure recommendations address the issues mentioned.`;
+  }
+  
+  if (preferences.length > 0) {
+    const uniquePreferences = [...new Set(preferences)];
+    reviewContext += `\n\nBased on user reviews, apply these preferences:\n${uniquePreferences.map(p => `- ${p}`).join('\n')}`;
+  }
+
+  return { context: reviewContext, reviewDetails };
+}
+
 export async function generateRecommendations(
   steamId: string,
   options: {
     count?: number;
     filters?: RecommendationFilters;
     customPrompt?: string;
+    lastRecommendationTime?: string; // ISO timestamp of last recommendation generation
   } = {}
-): Promise<RecommendationResult> {
-  const { count = 10, filters, customPrompt } = options;
+): Promise<RecommendationResult & { reviewMessages?: Array<{ gameName: string; message: string }> }> {
+  const { count = 10, filters, customPrompt, lastRecommendationTime } = options;
+
+  // Fetch user reviews (only since last recommendation if provided)
+  const relevantReviews = await fetchUserReviews(steamId, lastRecommendationTime);
+
+  // Analyze reviews for preferences and context
+  const { context: reviewContext, reviewDetails } = analyzeReviewsForPreferences(relevantReviews);
 
   // Build the user prompt
   let userPrompt = `Analyze the Steam profile for user ID: ${steamId}
@@ -252,15 +388,32 @@ Generate ${count} personalized game recommendations based on their gaming histor
     }
   }
 
+  // Add review-based preferences and detailed review information
+  if (reviewContext) {
+    userPrompt += reviewContext;
+    
+    // Add detailed review information for reference in descriptions
+    if (reviewDetails.length > 0) {
+      userPrompt += `\n\nIMPORTANT: When writing the "description" field for each recommendation, you MUST reference the specific games the user reviewed and explain how your recommendation addresses their feedback. For example:
+- If user disliked "Game X" for being too hard, mention: "Based on your review of Game X where you found it too challenging, this game offers a more accessible difficulty..."
+- If user liked "Game Y", mention: "Similar to Game Y which you enjoyed, this game features..."
+- Always be specific about which game(s) influenced the recommendation and why.
+
+Recent reviews to reference in descriptions:
+${reviewDetails.map(r => `- ${r.reaction === 'like' ? 'LIKED' : 'DISLIKED'}: "${r.game}"${r.reasons.length > 0 ? ` (Reasons: ${r.reasons.join(', ')})` : ''}${r.details ? ` (Details: ${r.details})` : ''}`).join('\n')}`;
+    }
+  }
+
   if (customPrompt) {
     userPrompt += `\n\nAdditional context: ${customPrompt}`;
   }
 
   userPrompt += `
 
-Return your response as a valid JSON object with two fields:
+Return your response as a valid JSON object with three fields:
 1. "userProfile": Summary of the analyzed user profile (steamId, totalGames, totalPlaytimeHours, topGamesByPlaytime, recentGames)
 2. "recommendations": Array of ${count} game recommendations
+3. "reviewMessages": Array of personalized messages explaining why each recommendation was made based on user reviews (optional, only include if reviews influenced the recommendation)
 
 Each recommendation must follow this exact structure:
 {
@@ -272,11 +425,20 @@ Each recommendation must follow this exact structure:
   "difficulty": "casual|moderate|challenging",
   "playTime": "short|medium|long",
   "releaseDate": "YYYY-MM-DD",
-  "description": "Personalized explanation of why this game is recommended...",
+  "description": "Personalized explanation of why this game is recommended. MUST reference specific games the user reviewed (if any) and explain how this recommendation addresses their feedback. For example: 'Based on your review of [Game Name] where you mentioned [feedback], this game [addresses that concern]...'",
   "tags": ["Tag1", "Tag2", "Tag3", ...]
 }
 
-IMPORTANT: Use real Steam App IDs for the image URLs. Do not use placeholder IDs.`;
+Each review message (if provided) should follow this structure:
+{
+  "gameName": "Game Title",
+  "message": "Based on your review of [Game], we recommend this game as it is [reason based on review - e.g., 'less challenging', 'shorter', 'more engaging', etc.]"
+}
+
+IMPORTANT: 
+- Use real Steam App IDs for the image URLs. Do not use placeholder IDs.
+- If reviews influenced recommendations, include personalized messages explaining the connection.
+- Messages should reference specific games the user reviewed and explain how the recommendation addresses their feedback.`;
 
   try {
     const result = await run(recommendationAgent, userPrompt);
@@ -306,6 +468,7 @@ IMPORTANT: Use real Steam App IDs for the image URLs. Do not use placeholder IDs
         topGamesByPlaytime: [],
         recentGames: [],
       },
+      reviewMessages: parsed.reviewMessages || [],
     };
   } catch (error) {
     console.error('Error generating recommendations:', error);

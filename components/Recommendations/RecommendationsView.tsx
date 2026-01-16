@@ -103,12 +103,28 @@ export default function RecommendationsView() {
         throw new Error(data.error || 'Failed to get recommendations');
       }
 
-      setAiRecommendations(data.recommendations);
+      // Map review messages to recommendations
+      const reviewMessagesMap = new Map<string, string>();
+      if (data.reviewMessages && Array.isArray(data.reviewMessages)) {
+        for (const msg of data.reviewMessages) {
+          if (msg.gameName && msg.message) {
+            reviewMessagesMap.set(msg.gameName, msg.message);
+          }
+        }
+      }
+
+      // Add review messages to recommendations
+      const recommendationsWithMessages = (data.recommendations || []).map((rec: Recommendation) => ({
+        ...rec,
+        reviewMessage: reviewMessagesMap.get(rec.name),
+      }));
+
+      setAiRecommendations(recommendationsWithMessages);
       setActiveQuery(aiSearchQuery);
       // Cache the search results
       setSearchHistory((prev) => ({
         ...prev,
-        [aiSearchQuery.trim()]: data.recommendations,
+        [aiSearchQuery.trim()]: recommendationsWithMessages,
       }));
     } catch (error) {
       console.error('AI Search error:', error);
@@ -221,7 +237,23 @@ export default function RecommendationsView() {
         throw new Error(data.error || 'Failed to get recommendations');
       }
 
-      setAiRecommendations(data.recommendations);
+      // Map review messages to recommendations
+      const reviewMessagesMap = new Map<string, string>();
+      if (data.reviewMessages && Array.isArray(data.reviewMessages)) {
+        for (const msg of data.reviewMessages) {
+          if (msg.gameName && msg.message) {
+            reviewMessagesMap.set(msg.gameName, msg.message);
+          }
+        }
+      }
+
+      // Add review messages to recommendations
+      const recommendationsWithMessages = (data.recommendations || []).map((rec: Recommendation) => ({
+        ...rec,
+        reviewMessage: reviewMessagesMap.get(rec.name),
+      }));
+
+      setAiRecommendations(recommendationsWithMessages);
       // Keep the activeQuery if one exists, otherwise clear it
       // activeQuery is preserved - don't clear it here
       setActiveFiltersDescription(buildFiltersDescription(currentFilters));

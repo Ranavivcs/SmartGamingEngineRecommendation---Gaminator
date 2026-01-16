@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create or update user in database
-    const user = createOrUpdateUser({
+    const user = await createOrUpdateUser({
       steamId,
       username: playerSummary.personaname,
       avatar: playerSummary.avatarfull || playerSummary.avatarmedium || playerSummary.avatar,

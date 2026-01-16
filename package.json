@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@openai/agents": "^0.3.7",
+    "@supabase/supabase-js": "^2.90.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/jsonwebtoken": "^9.0.10",
     "axios": "^1.13.2",

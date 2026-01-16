@@ -11,9 +11,38 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const user = getUserBySteamId(session.steamId);
+    const user = await getUserBySteamId(session.steamId);
 
     if (!user) {
+      // User doesn't exist in Supabase yet - this can happen if they logged in before migration
+      // Try to create the user from session data
+      console.log('User not found in database, creating from session data...');
+      try {
+        const { createOrUpdateUser } = await import('@/lib/db');
+        const newUser = await createOrUpdateUser({
+          steamId: session.steamId,
+          username: session.username,
+          avatar: session.avatar,
+          profileUrl: `https://steamcommunity.com/profiles/${session.steamId}`,
+        });
+        
+        // Retry fetching the user
+        const retryUser = await getUserBySteamId(session.steamId);
+        if (!retryUser) {
+          return NextResponse.json({ error: 'Failed to create user in database' }, { status: 500 });
+        }
+      } catch (createError) {
+        console.error('Error creating user from session:', createError);
+        return NextResponse.json(
+          { error: `User not found and failed to create: ${createError instanceof Error ? createError.message : 'Unknown error'}` },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Get the user (either existing or newly created)
+    const finalUser = user || await getUserBySteamId(session.steamId);
+    if (!finalUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -27,10 +56,10 @@ export async function GET() {
 
     return NextResponse.json({
       user: {
-        steamId: user.steamId,
-        username: user.username,
-        avatar: user.avatar,
-        profileUrl: user.profileUrl,
+        steamId: finalUser.steamId,
+        username: finalUser.username,
+        avatar: finalUser.avatar,
+        profileUrl: finalUser.profileUrl,
       },
       stats: {
         totalGames: ownedGames.length,
@@ -77,8 +106,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user profile';
     return NextResponse.json(
-      { error: 'Failed to fetch user profile' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

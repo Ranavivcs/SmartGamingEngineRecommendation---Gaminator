@@ -43,7 +43,7 @@ export function ReviewModalProvider({ children }: { children: ReactNode }) {
     onReviewSubmitRef.current = callback;
   }, []);
 
-  const submitReview = useCallback((
+  const submitReview = useCallback(async (
     game: Recommendation,
     reaction: 'like' | 'dislike',
     reasons: string[] = [],
@@ -59,6 +59,41 @@ export function ReviewModalProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     console.log('REVIEW:', review);
+
+    // Save review to Supabase
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameId: game.name,
+          gameTitle: game.name,
+          reaction,
+          reasons,
+          detailsText,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Unknown error';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || JSON.stringify(error);
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error('Failed to save review:', errorMessage);
+        // Continue anyway - don't block the UI
+      } else {
+        const result = await response.json();
+        console.log('Review saved successfully:', result);
+      }
+    } catch (error) {
+      console.error('Error saving review:', error);
+      // Continue anyway - don't block the UI
+    }
 
     // Call the review submit handler (removes game from array, etc.)
     onReviewSubmitRef.current?.(game, reaction, reasons, detailsText);

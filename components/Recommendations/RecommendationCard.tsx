@@ -17,6 +17,7 @@ export interface Recommendation {
   releaseDate: string;
   description: string;
   tags: string[];
+  reviewMessage?: string; // Optional personalized message based on reviews
 }
 
 export type TrophyTier = 'gold' | 'silver' | 'bronze';
@@ -205,6 +206,15 @@ export default function RecommendationCard({
             {recommendation.difficulty.charAt(0).toUpperCase() + recommendation.difficulty.slice(1)}
           </span>
         </div>
+
+        {/* Review Message (if available) */}
+        {recommendation.reviewMessage && (
+          <div className="px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg mb-2">
+            <p className="text-xs text-blue-300 leading-relaxed">
+              💡 {recommendation.reviewMessage}
+            </p>
+          </div>
+        )}
 
         {/* Description - Only show full on gold tier */}
         <p className={`text-sm text-[#A0A0A0] leading-relaxed ${isGold ? '' : 'line-clamp-2'}`}>

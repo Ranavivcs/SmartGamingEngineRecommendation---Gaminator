@@ -85,6 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       recommendations: result.recommendations,
       userProfile: result.userProfile,
+      reviewMessages: result.reviewMessages || [],
     });
   } catch (error) {
     console.error('AI Search error:', error);
