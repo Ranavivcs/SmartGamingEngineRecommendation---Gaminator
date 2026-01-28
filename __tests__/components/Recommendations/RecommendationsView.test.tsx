@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RecommendationsView from '@/components/Recommendations/RecommendationsView';
+import { ReviewModalProvider } from '@/components/Recommendations/ReviewModalContext';
 import { mockRecommendations, mockApiResponse } from '../../__mocks__/mockData';
 import { createMockFetchResponse, createMockFetchError } from '../../utils/testUtils';
 
@@ -82,6 +83,13 @@ jest.mock('@/data/recommendations.json', () => ({
   ],
 }));
 
+const renderWithProvider = () =>
+  render(
+    <ReviewModalProvider>
+      <RecommendationsView />
+    </ReviewModalProvider>
+  );
+
 describe('RecommendationsView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -95,90 +103,90 @@ describe('RecommendationsView', () => {
 
   describe('Initial Rendering', () => {
     it('renders the page header', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Recommended For You')).toBeInTheDocument();
     });
 
     it('renders the default subtitle', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(
         screen.getByText('Based on your gaming history, preferences, and playstyle')
       ).toBeInTheDocument();
     });
 
     it('renders the AI search input', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(
         screen.getByPlaceholderText("Describe the type of game you're looking for...")
       ).toBeInTheDocument();
     });
 
     it('renders the search button', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
     });
 
     it('renders helper text for AI search', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(
         screen.getByText(/Try: "A relaxing farming game with multiplayer"/)
       ).toBeInTheDocument();
     });
 
     it('renders the sidebar with explore as active item', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByTestId('sidebar')).toBeInTheDocument();
       expect(screen.getByTestId('active-item')).toHaveTextContent('explore');
     });
 
     it('renders the filter panel', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Filters')).toBeInTheDocument();
     });
   });
 
   describe('Recommendation Display Tiers', () => {
     it('renders Top Pick section for gold tier', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Top Pick')).toBeInTheDocument();
     });
 
     it('renders Great Matches section for silver tier', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Great Matches')).toBeInTheDocument();
     });
 
     it('renders More Recommendations section for bronze tier', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('More Recommendations')).toBeInTheDocument();
     });
 
     it('displays the first recommendation as gold tier (top pick)', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Mock Game 1')).toBeInTheDocument();
     });
 
     it('displays games 2-4 as silver tier (great matches)', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Mock Game 2')).toBeInTheDocument();
       expect(screen.getByText('Mock Game 3')).toBeInTheDocument();
       expect(screen.getByText('Mock Game 4')).toBeInTheDocument();
     });
 
     it('displays games 5+ as bronze tier', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('Mock Game 5')).toBeInTheDocument();
     });
   });
 
   describe('Stats Footer', () => {
     it('displays the total recommendation count', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.getByText('5 recommendations')).toBeInTheDocument();
     });
 
     it('displays the average match percentage', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       // Average of 95+90+85+80+75 = 425/5 = 85%
       expect(screen.getByText('85%')).toBeInTheDocument();
     });
@@ -186,13 +194,13 @@ describe('RecommendationsView', () => {
 
   describe('AI Search Functionality', () => {
     it('disables search button when input is empty', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       const searchButton = screen.getByRole('button', { name: /search/i });
       expect(searchButton).toBeDisabled();
     });
 
     it('enables search button when input has text', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -213,7 +221,7 @@ describe('RecommendationsView', () => {
           )
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -236,7 +244,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -285,7 +293,7 @@ describe('RecommendationsView', () => {
 
       (global.fetch as jest.Mock).mockResolvedValue(createMockFetchResponse(aiResults));
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -306,7 +314,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -327,7 +335,7 @@ describe('RecommendationsView', () => {
         createMockFetchError('Failed to generate recommendations')
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -348,7 +356,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -369,7 +377,7 @@ describe('RecommendationsView', () => {
 
   describe('Search History', () => {
     it('does not show search history when empty', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       expect(screen.queryByText('Previous searches')).not.toBeInTheDocument();
     });
 
@@ -378,7 +386,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -400,7 +408,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -442,7 +450,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
       const input = screen.getByPlaceholderText(
         "Describe the type of game you're looking for..."
       );
@@ -471,7 +479,7 @@ describe('RecommendationsView', () => {
 
   describe('Game Detail Modal', () => {
     it('opens modal when a game card is clicked', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Find and click a game card
       const gameCard = screen.getByText('Mock Game 1').closest('div[class*="cursor-pointer"]');
@@ -488,7 +496,7 @@ describe('RecommendationsView', () => {
     });
 
     it('closes modal when close button is clicked', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Open modal
       const gameCard = screen.getByText('Mock Game 1').closest('div[class*="cursor-pointer"]');
@@ -527,7 +535,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on a genre filter
       await act(async () => {
@@ -554,7 +562,7 @@ describe('RecommendationsView', () => {
           )
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on a genre filter
       await act(async () => {
@@ -576,7 +584,7 @@ describe('RecommendationsView', () => {
       // We need to simulate a scenario where all recommendations are filtered out
       // This is tricky because the mock data will be filtered client-side
       // Let's filter to a genre that doesn't exist
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Apply filters that result in no matches
       // The mock data has Action, RPG, Strategy, Puzzle genres
@@ -590,7 +598,7 @@ describe('RecommendationsView', () => {
     it('calls logout API and redirects when logout is clicked', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       const logoutButton = screen.getByTestId('logout-button');
 
@@ -604,7 +612,7 @@ describe('RecommendationsView', () => {
 
   describe('Available Genres', () => {
     it('extracts unique genres from recommendations', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // The FilterPanel should show all unique genres from mock data
       expect(screen.getByText('Action')).toBeInTheDocument();
@@ -616,14 +624,14 @@ describe('RecommendationsView', () => {
 
   describe('Sorting', () => {
     it('sorts by similarity by default', () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
       // First game should be Mock Game 1 with 95% similarity
       const cards = screen.getAllByText(/Mock Game/);
       expect(cards[0]).toHaveTextContent('Mock Game 1');
     });
 
     it('changes sort order when sort option is selected', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on A-Z sort
       await act(async () => {
@@ -637,7 +645,7 @@ describe('RecommendationsView', () => {
     });
 
     it('sorts by release date when selected', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on Newest sort
       await act(async () => {
@@ -653,7 +661,7 @@ describe('RecommendationsView', () => {
 
   describe('Filter Panel Integration', () => {
     it('applies difficulty filter', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on Challenging difficulty
       await act(async () => {
@@ -665,7 +673,7 @@ describe('RecommendationsView', () => {
     });
 
     it('applies play time filter', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on Quick Sessions
       await act(async () => {
@@ -677,7 +685,7 @@ describe('RecommendationsView', () => {
     });
 
     it('applies mode filter', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Click on Solo
       await act(async () => {
@@ -689,7 +697,7 @@ describe('RecommendationsView', () => {
     });
 
     it('clears all filters', async () => {
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // Apply multiple filters
       await act(async () => {
@@ -713,7 +721,7 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      render(<RecommendationsView />);
+      renderWithProvider();
 
       // First perform a search
       const input = screen.getByPlaceholderText(
@@ -736,9 +744,9 @@ describe('RecommendationsView', () => {
         createMockFetchResponse(mockApiResponse)
       );
 
-      // Now apply a filter
+      // Now apply a genre filter from the AI results
       await act(async () => {
-        fireEvent.click(screen.getByText('Action'));
+        fireEvent.click(screen.getByText('Action Roguelike'));
       });
 
       // Fast-forward debounce

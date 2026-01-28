@@ -1,11 +1,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import RecommendationCard from '@/components/Recommendations/RecommendationCard';
+import { ReviewModalProvider } from '@/components/Recommendations/ReviewModalContext';
 import { mockRecommendation, createMockRecommendation } from '../../__mocks__/mockData';
+
+const renderWithProvider = (ui: React.ReactElement) =>
+  render(<ReviewModalProvider>{ui}</ReviewModalProvider>);
 
 describe('RecommendationCard', () => {
   describe('Rendering', () => {
     it('renders the game name', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -16,7 +20,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders the game genre', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -27,7 +31,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders the similarity percentage', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -38,7 +42,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders the game description', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -49,7 +53,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders the game image with correct alt text', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -62,7 +66,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders mode label correctly', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -74,7 +78,7 @@ describe('RecommendationCard', () => {
 
     it('renders coop mode correctly', () => {
       const coopGame = createMockRecommendation({ mode: 'coop' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={coopGame}
           tier="silver"
@@ -86,7 +90,7 @@ describe('RecommendationCard', () => {
 
     it('renders multiplayer mode correctly', () => {
       const multiplayerGame = createMockRecommendation({ mode: 'multiplayer' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={multiplayerGame}
           tier="silver"
@@ -98,7 +102,7 @@ describe('RecommendationCard', () => {
 
     it('renders playtime label correctly for short sessions', () => {
       const shortGame = createMockRecommendation({ playTime: 'short' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={shortGame}
           tier="bronze"
@@ -109,7 +113,7 @@ describe('RecommendationCard', () => {
     });
 
     it('renders playtime label correctly for medium sessions', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -121,7 +125,7 @@ describe('RecommendationCard', () => {
 
     it('renders playtime label correctly for long sessions', () => {
       const longGame = createMockRecommendation({ playTime: 'long' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={longGame}
           tier="bronze"
@@ -132,19 +136,21 @@ describe('RecommendationCard', () => {
     });
 
     it('renders difficulty with correct styling for challenging', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
           index={0}
         />
       );
-      expect(screen.getByText('Challenging')).toBeInTheDocument();
+      // "Challenging" may appear in multiple places (badge and tags),
+      // so we assert that at least one instance is rendered.
+      expect(screen.getAllByText('Challenging').length).toBeGreaterThan(0);
     });
 
     it('renders difficulty with correct styling for moderate', () => {
       const moderateGame = createMockRecommendation({ difficulty: 'moderate' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={moderateGame}
           tier="silver"
@@ -156,7 +162,7 @@ describe('RecommendationCard', () => {
 
     it('renders difficulty with correct styling for casual', () => {
       const casualGame = createMockRecommendation({ difficulty: 'casual' });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={casualGame}
           tier="bronze"
@@ -169,7 +175,7 @@ describe('RecommendationCard', () => {
 
   describe('Trophy Tiers', () => {
     it('displays "Best Match" badge for gold tier', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -180,7 +186,7 @@ describe('RecommendationCard', () => {
     });
 
     it('displays "Great Match" badge for silver tier', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="silver"
@@ -191,7 +197,7 @@ describe('RecommendationCard', () => {
     });
 
     it('displays "Good Match" badge for bronze tier', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="bronze"
@@ -204,7 +210,7 @@ describe('RecommendationCard', () => {
 
   describe('Tags Display', () => {
     it('displays up to 8 tags for gold tier', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -219,11 +225,13 @@ describe('RecommendationCard', () => {
       expect(screen.getByText('Top-Down')).toBeInTheDocument();
       expect(screen.getByText('Fast-Paced')).toBeInTheDocument();
       expect(screen.getByText('Mythology')).toBeInTheDocument();
-      expect(screen.getByText('Challenging')).toBeInTheDocument();
+      // "Challenging" appears both as a tag and as the difficulty badge,
+      // so we assert that at least one instance is present.
+      expect(screen.getAllByText('Challenging').length).toBeGreaterThan(0);
     });
 
     it('displays up to 4 tags for silver tier with "+more" indicator', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="silver"
@@ -238,7 +246,7 @@ describe('RecommendationCard', () => {
     });
 
     it('displays up to 4 tags for bronze tier with "+more" indicator', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="bronze"
@@ -250,7 +258,7 @@ describe('RecommendationCard', () => {
 
     it('does not show "+more" indicator when tags are 4 or fewer', () => {
       const fewTagsGame = createMockRecommendation({ tags: ['Tag1', 'Tag2', 'Tag3'] });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={fewTagsGame}
           tier="silver"
@@ -264,7 +272,7 @@ describe('RecommendationCard', () => {
   describe('Interactions', () => {
     it('calls onClick when card is clicked', () => {
       const handleClick = jest.fn();
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -283,7 +291,7 @@ describe('RecommendationCard', () => {
     });
 
     it('does not throw when clicked without onClick handler', () => {
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -300,7 +308,7 @@ describe('RecommendationCard', () => {
 
   describe('Responsive Styling', () => {
     it('applies max-w-2xl class for gold tier cards', () => {
-      const { container } = render(
+      const { container } = renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="gold"
@@ -314,7 +322,7 @@ describe('RecommendationCard', () => {
     });
 
     it('does not apply max-w-2xl class for non-gold tier cards', () => {
-      const { container } = render(
+      const { container } = renderWithProvider(
         <RecommendationCard
           recommendation={mockRecommendation}
           tier="silver"
@@ -330,7 +338,7 @@ describe('RecommendationCard', () => {
   describe('Different Similarity Scores', () => {
     it('renders low similarity score correctly', () => {
       const lowSimilarityGame = createMockRecommendation({ similarity: 65 });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={lowSimilarityGame}
           tier="bronze"
@@ -342,7 +350,7 @@ describe('RecommendationCard', () => {
 
     it('renders perfect similarity score correctly', () => {
       const perfectGame = createMockRecommendation({ similarity: 100 });
-      render(
+      renderWithProvider(
         <RecommendationCard
           recommendation={perfectGame}
           tier="gold"
