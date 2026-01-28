@@ -2,7 +2,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+**⚠️ Important:** This project requires API keys and database setup. See [SETUP.md](./SETUP.md) for complete setup instructions.
+
+### Quick Start
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables (see [SETUP.md](./SETUP.md))
+4. Set up Supabase database (see [SETUP.md](./SETUP.md))
+5. Run the development server:
 
 ```bash
 npm run dev
